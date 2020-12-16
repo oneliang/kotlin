@@ -169,7 +169,7 @@ class JsIntrinsics(private val irBuiltIns: IrBuiltIns, val context: JsIrBackendC
     val jsGetContinuation = getInternalFunction("getContinuation")
     val jsGetKClass = getInternalWithoutPackage("getKClass")
     val jsGetKClassFromExpression = getInternalWithoutPackage("getKClassFromExpression")
-    val jsClass = getInternalFunction("jsClass")
+    val jsClass = defineJsClassIntrinsic().symbol
 
     val jsNumberRangeToNumber = getInternalFunction("numberRangeToNumber")
     val jsNumberRangeToLong = getInternalFunction("numberRangeToLong")
@@ -444,6 +444,21 @@ class JsIntrinsics(private val irBuiltIns: IrBuiltIns, val context: JsIrBackendC
         return irFactory.addFunction(externalPackageFragment) {
             name = Name.identifier(Namer.UNREACHABLE_NAME)
             origin = JsLoweredDeclarationOrigin.JS_INTRINSICS_STUB
+            returnType = irBuiltIns.nothingType
+        }
+    }
+
+    private fun defineJsClassIntrinsic(): IrSimpleFunction {
+        return irFactory.addFunction(externalPackageFragment) {
+            name = Name.identifier("jsClass")
+            origin = JsLoweredDeclarationOrigin.JS_INTRINSICS_STUB
+            isInline = true
+        }.apply {
+            addTypeParameter {
+                name = Name.identifier("T")
+                isReified = true
+                superTypes += irBuiltIns.anyType
+            }
             returnType = irBuiltIns.nothingType
         }
     }
