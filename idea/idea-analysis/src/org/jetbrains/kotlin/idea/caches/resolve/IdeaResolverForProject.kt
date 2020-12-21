@@ -36,6 +36,7 @@ import org.jetbrains.kotlin.platform.jvm.isJvm
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.ResolutionAnchorProvider
 import org.jetbrains.kotlin.resolve.jvm.JvmPlatformParameters
+import org.jetbrains.kotlin.storage.CorruptingComputationException
 
 class IdeaResolverForProject(
     debugName: String,
@@ -151,12 +152,20 @@ class IdeaResolverForProject(
             cache[key] = newBuiltIns
 
             if (newBuiltIns is JvmBuiltIns) {
-                // SDK should be present, otherwise we wouldn't have created JvmBuiltIns in createBuiltIns
-                val sdkDescriptor = resolverForSdk.descriptorForModule(sdk!!)
+                // Try/catch is necessary because if during this code ProcessCanceledException is thrown, cached built-ins become corrupted
+                // Thus, it's necessary to flush all project resolvers with all ModuleDescriptor instances.
+                // For more details, see CorruptingComputationException documentation
+                try {
+                    // SDK should be present, otherwise we wouldn't have created JvmBuiltIns in createBuiltIns
+                    val sdkDescriptor = resolverForSdk.descriptorForModule(sdk!!)
 
-                val isAdditionalBuiltInsFeaturesSupported = module.supportsAdditionalBuiltInsMembers(projectContextFromSdkResolver.project)
+                    val isAdditionalBuiltInsFeaturesSupported =
+                        module.supportsAdditionalBuiltInsMembers(projectContextFromSdkResolver.project)
 
-                newBuiltIns.initialize(sdkDescriptor, isAdditionalBuiltInsFeaturesSupported)
+                    newBuiltIns.initialize(sdkDescriptor, isAdditionalBuiltInsFeaturesSupported)
+                } catch (throwable: Throwable) {
+                    throw CorruptingComputationException(throwable)
+                }
             }
 
             return@compute newBuiltIns

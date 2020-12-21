@@ -39,6 +39,9 @@ public class LockBasedStorageManager implements StorageManager {
             @NotNull
             @Override
             public RuntimeException handleException(@NotNull Throwable throwable) {
+                if (throwable instanceof CorruptingComputationException) {
+                    throw ExceptionUtilsKt.rethrow(((CorruptingComputationException) throwable).getWrapped());
+                }
                 throw ExceptionUtilsKt.rethrow(throwable);
             }
         };

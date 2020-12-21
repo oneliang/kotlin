@@ -70,5 +70,13 @@ interface StorageManager {
      */
     fun <T : Any> createNullableLazyValueWithPostCompute(computable: () -> T?, postCompute: (T?) -> Unit): NullableLazyValue<T>
 
+    /**
+     * Lambda may throw org.jetbrains.kotlin.storage.CorruptingComputationException
+     * The exception means that computation started under StorageManager failed unsuccessfully and cannot be recovered,
+     * thus all caches need to be flushed even in case of ProcessCanceledException.
+     *
+     * Implementation should pass the exception to org.jetbrains.kotlin.storage.LockBasedStorageManager.ExceptionHandlingStrategy.handleException as is
+     * and the latter should unwrap CorruptingComputationException and rethrow its content
+     */
     fun <T> compute(computable: () -> T): T
 }

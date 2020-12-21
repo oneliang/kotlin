@@ -16,6 +16,8 @@ open class ExceptionTracker : ModificationTracker, LockBasedStorageManager.Excep
     private val cancelledTracker: AtomicLong = AtomicLong()
 
     override fun handleException(throwable: Throwable): RuntimeException {
+        if (throwable is CorruptingComputationException) throw rethrow(throwable.wrapped)
+
         // should not increment counter when ReenteringLazyValueComputationException is thrown since it implements correct frontend behaviour
         if (throwable !is ReenteringLazyValueComputationException) {
             if (!throwable.isProcessCanceledException() || CacheResetOnProcessCanceled.enabled) {
