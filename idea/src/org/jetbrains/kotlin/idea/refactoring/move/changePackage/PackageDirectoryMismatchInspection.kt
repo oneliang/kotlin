@@ -12,6 +12,9 @@ import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.TextRange
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiDirectory
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.refactoring.PackageWrapper
 import com.intellij.refactoring.move.moveClassesOrPackages.AutocreatingSingleSourceRootMoveDestination
@@ -83,23 +86,7 @@ class PackageDirectoryMismatchInspection : AbstractKotlinInspection() {
             val sourceRoots = getSuitableDestinationSourceRoots(project)
             val packageWrapper = PackageWrapper(PsiManager.getInstance(project), directive.qualifiedName)
             val fileToMove = directive.containingFile
-            val chosenRoot =
-                sourceRoots.singleOrNull()
-                    ?: MoveClassesOrPackagesUtil.chooseSourceRoot(packageWrapper, sourceRoots, fileToMove.containingDirectory)
-                    ?: return
-            val targetDirFactory = AutocreatingSingleSourceRootMoveDestination(packageWrapper, chosenRoot)
-            targetDirFactory.verify(fileToMove)?.let {
-                Messages.showMessageDialog(project, it, CommonBundle.getErrorTitle(), Messages.getErrorIcon())
-                return
-            }
-            val targetDirectory = runWriteAction {
-                targetDirFactory.getTargetDirectory(fileToMove)
-            } ?: return
-
-            RefactoringMessageUtil.checkCanCreateFile(targetDirectory, file.name)?.let {
-                Messages.showMessageDialog(project, it, CommonBundle.getErrorTitle(), Messages.getErrorIcon())
-                return
-            }
+            val targetDirectory = getDirToMoveTo(fileToMove, sourceRoots, packageWrapper, project) ?: return
 
             runWriteAction {
                 MoveFilesOrDirectoriesUtil.doMoveFile(file, targetDirectory)
@@ -117,4 +104,25 @@ class PackageDirectoryMismatchInspection : AbstractKotlinInspection() {
             KotlinChangePackageRefactoring(file).run(packageFqName)
         }
     }
+}
+
+fun getDirToMoveTo(file: PsiFile, sourceRoots: List<VirtualFile>, packageWrapper: PackageWrapper, project: Project): PsiDirectory? {
+    val chosenRoot = sourceRoots.singleOrNull()
+        ?: MoveClassesOrPackagesUtil.chooseSourceRoot(packageWrapper, sourceRoots, file.containingDirectory)
+        ?: return null
+
+    val targetDirFactory = AutocreatingSingleSourceRootMoveDestination(packageWrapper, chosenRoot)
+    targetDirFactory.verify(file)?.let {
+        Messages.showMessageDialog(project, it, CommonBundle.getErrorTitle(), Messages.getErrorIcon())
+        return null
+    }
+
+    val targetDirectory = targetDirFactory.getTargetDirectory(file) ?: return null
+
+    RefactoringMessageUtil.checkCanCreateFile(targetDirectory, file.name)?.let {
+        Messages.showMessageDialog(project, it, CommonBundle.getErrorTitle(), Messages.getErrorIcon())
+        return null
+    }
+
+    return targetDirectory
 }
