@@ -27,13 +27,10 @@ private inline val storageUnit get() = DurationUnit.NANOSECONDS
  */
 @SinceKotlin("1.3")
 @ExperimentalTime
-@Suppress("NON_PUBLIC_PRIMARY_CONSTRUCTOR_OF_INLINE_CLASS")
 public inline class Duration internal constructor(internal val value: Double) : Comparable<Duration> {
-// TODO: backend fails on init block, wait for KT-28055
-
-//    init {
-//        require(_value.isNaN().not())
-//    }
+    init {
+        require(!value.isNaN()) { "Duration value cannot be NaN." }
+    }
 
     companion object {
         /** The duration equal to exactly 0 seconds. */
