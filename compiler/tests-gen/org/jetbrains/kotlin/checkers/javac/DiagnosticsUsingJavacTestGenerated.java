@@ -10616,6 +10616,11 @@ public class DiagnosticsUsingJavacTestGenerated extends AbstractDiagnosticsUsing
                     runTest("compiler/testData/diagnostics/tests/inference/builderInference/skipedUnresolvedInBuilderInferenceWithStubReceiverType.kt");
                 }
 
+                @TestMetadata("specialCallsWithCallableReferencesDontCareTypeInBlockExression.kt")
+                public void testSpecialCallsWithCallableReferencesDontCareTypeInBlockExression() throws Exception {
+                    runTest("compiler/testData/diagnostics/tests/inference/builderInference/specialCallsWithCallableReferencesDontCareTypeInBlockExression.kt");
+                }
+
                 @TestMetadata("specialCallsWithCallableReferencesErrorType.kt")
                 public void testSpecialCallsWithCallableReferencesErrorType() throws Exception {
                     runTest("compiler/testData/diagnostics/tests/inference/builderInference/specialCallsWithCallableReferencesErrorType.kt");
