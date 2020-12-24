@@ -10626,6 +10626,11 @@ public class DiagnosticsTestGenerated extends AbstractDiagnosticsTestWithFirVali
                     runTest("compiler/testData/diagnostics/tests/inference/builderInference/skipedUnresolvedInBuilderInferenceWithStubReceiverType.kt");
                 }
 
+                @TestMetadata("specialCallsWithCallableReferences.kt")
+                public void testSpecialCallsWithCallableReferences() throws Exception {
+                    runTest("compiler/testData/diagnostics/tests/inference/builderInference/specialCallsWithCallableReferences.kt");
+                }
+
                 @TestMetadata("specialCallsWithCallableReferencesDontCareTypeInBlockExression.kt")
                 public void testSpecialCallsWithCallableReferencesDontCareTypeInBlockExression() throws Exception {
                     runTest("compiler/testData/diagnostics/tests/inference/builderInference/specialCallsWithCallableReferencesDontCareTypeInBlockExression.kt");
@@ -10644,6 +10649,11 @@ public class DiagnosticsTestGenerated extends AbstractDiagnosticsTestWithFirVali
                 @TestMetadata("specialCallsWithCallableReferencesNonStrictOnlyInputTypes.kt")
                 public void testSpecialCallsWithCallableReferencesNonStrictOnlyInputTypes() throws Exception {
                     runTest("compiler/testData/diagnostics/tests/inference/builderInference/specialCallsWithCallableReferencesNonStrictOnlyInputTypes.kt");
+                }
+
+                @TestMetadata("specialCallsWithLambdas.kt")
+                public void testSpecialCallsWithLambdas() throws Exception {
+                    runTest("compiler/testData/diagnostics/tests/inference/builderInference/specialCallsWithLambdas.kt");
                 }
             }
 
