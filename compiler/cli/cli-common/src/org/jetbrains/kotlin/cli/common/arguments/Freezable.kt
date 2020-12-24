@@ -16,6 +16,7 @@
 
 package org.jetbrains.kotlin.cli.common.arguments
 
+import java.io.File
 import java.io.Serializable
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
@@ -35,6 +36,15 @@ abstract class Freezable {
 
         override fun setValue(thisRef: Any, property: KProperty<*>, value: String?) {
             super.setValue(thisRef, property, if (value.isNullOrEmpty()) defaultValue else value)
+        }
+    }
+
+    protected open inner class FreezableSeparatedStringVar(private var value: Array<String>?) : ReadWriteProperty<Any, String?>,
+        Serializable {
+        override fun getValue(thisRef: Any, property: KProperty<*>) = value?.joinToString(File.pathSeparator)
+
+        override fun setValue(thisRef: Any, property: KProperty<*>, value: String?) {
+            this.value = value?.split(File.pathSeparator)?.toTypedArray()
         }
     }
 

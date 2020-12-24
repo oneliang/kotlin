@@ -102,6 +102,8 @@ val Task.isOptimalStrategySuitable: Boolean
     get() = javaClass.declaredMethods.any { it.name == "getFlatCompilerArgumentsBucket" }
 
 class KotlinGradleModelBuilder : AbstractKotlinGradleModelBuilder() {
+    private var converter: RawToFlatCompilerArgumentsBucketConverter? = null
+
     override fun getErrorMessageBuilder(project: Project, e: Exception): ErrorMessageBuilder {
         return ErrorMessageBuilder.create(project, e, "Gradle import errors")
             .withDescription("Unable to build Kotlin project configuration")
@@ -171,7 +173,7 @@ class KotlinGradleModelBuilder : AbstractKotlinGradleModelBuilder() {
         val platform = platformPluginId ?: pluginToPlatform.entries.singleOrNull { project.plugins.findPlugin(it.key) != null }?.value
         val implementedProjects = getImplementedProjects(project)
         val compileTasksList = project.getAllTasks(false)[project]?.filter { it.javaClass.name in kotlinCompileTaskClasses }.orEmpty()
-        val flatArgumentsBySourceSet = compileTasksList.collectFlatArgsByProjectSourceSets(project, extraProperties)
+        val flatArgumentsBySourceSet = compileTasksList.collectFlatArgsBySourceSet(extraProperties)
         return KotlinGradleModelImpl(
             kotlinPluginId != null || platformPluginId != null,
             flatArgumentsBySourceSet,
@@ -184,10 +186,8 @@ class KotlinGradleModelBuilder : AbstractKotlinGradleModelBuilder() {
         )
     }
 
-    private fun List<Task>.collectFlatArgsByProjectSourceSets(project: Project, extraProperties: HashMap<String, KotlinTaskProperties>) =
+    private fun List<Task>.collectFlatArgsBySourceSet(extraProperties: HashMap<String, KotlinTaskProperties>) =
         LinkedHashMap<String, FlatArgsInfo>().also {
-            val kotlinExt = project.extensions.getByName("kotlin")
-            val converter = RawToFlatCompilerArgumentsBucketConverter(kotlinExt::class.java.classLoader)
             forEach { compileTask ->
                 val sourceSetName = compileTask.getSourceSetName()
                 val dependencyClasspath = compileTask.getDependencyClasspath()
@@ -201,6 +201,10 @@ class KotlinGradleModelBuilder : AbstractKotlinGradleModelBuilder() {
                     defaultCompilerArgumentsBucket = compileTask.getCompilerArgumentsBucket("getFlatCompilerArgumentsBucket")
                         ?: FlatCompilerArgumentsBucket()
                 } else {
+                    val converter = this@KotlinGradleModelBuilder.converter
+                        ?: RawToFlatCompilerArgumentsBucketConverter(compileTask::class.java.classLoader).also {
+                            this@KotlinGradleModelBuilder.converter = it
+                        }
                     currentCompilerArgumentsBucket = converter.convert(
                         compileTask.getCompilerArguments("getSerializedCompilerArguments")
                             ?: compileTask.getCompilerArguments("getSerializedCompilerArgumentsIgnoreClasspathIssues")

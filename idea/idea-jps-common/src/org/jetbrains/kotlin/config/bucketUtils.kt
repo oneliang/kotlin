@@ -109,6 +109,4 @@ fun FlatCompilerArgumentsBucket.extractFlagArgumentValue(
     property: KMutableProperty1<*, Boolean>
 ): Boolean? = extractFlagArgument(property)?.second
 
-fun FlatCompilerArgumentsBucket.extractClasspaths(): List<String>? = classpathParts?.second
-
 fun FlatCompilerArgumentsBucket.extractClasspathJoined(): String? = classpathParts?.second?.joinToString(File.pathSeparator)

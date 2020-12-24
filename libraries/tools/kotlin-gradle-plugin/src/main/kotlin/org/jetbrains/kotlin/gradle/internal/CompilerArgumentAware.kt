@@ -18,7 +18,10 @@ package org.jetbrains.kotlin.gradle.internal
 
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
-import org.jetbrains.kotlin.cli.common.arguments.*
+import org.jetbrains.kotlin.cli.common.arguments.Argument
+import org.jetbrains.kotlin.cli.common.arguments.CommonToolArguments
+import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments
+import org.jetbrains.kotlin.cli.common.arguments.K2MetadataCompilerArguments
 import org.jetbrains.kotlin.compilerRunner.ArgumentUtils
 import org.jetbrains.kotlin.utils.addToStdlib.safeAs
 import java.io.File
@@ -52,6 +55,9 @@ interface CompilerArgumentAware<T : CommonToolArguments> {
 
 internal fun <T : CommonToolArguments> CompilerArgumentAware<T>.prepareCompilerArguments(ignoreClasspathResolutionErrors: Boolean = false) =
     createCompilerArgs().also { setupCompilerArgs(it, ignoreClasspathResolutionErrors = ignoreClasspathResolutionErrors) }
+
+private val <T : CommonToolArguments> KProperty1<T, *>.argumentValue: String?
+    get() = (annotations.firstOrNull { it is Argument } as? Argument)?.value
 
 internal fun <T : CommonToolArguments> CompilerArgumentAware<T>.calculateFlatArgsBucket(ignoreClasspathResolutionErrors: Boolean = false): List<Any?> {
     val compilerArguments = prepareCompilerArguments(ignoreClasspathResolutionErrors = ignoreClasspathResolutionErrors)
@@ -94,8 +100,10 @@ internal fun <T : CommonToolArguments> CompilerArgumentAware<T>.calculateFlatArg
     }.toMap()
 
     val classpathArguments = when (compilerArguments) {
-        is K2MetadataCompilerArguments -> compilerArguments.classpath?.let { "-classpath" to it.split(File.pathSeparator) }
-        is K2JVMCompilerArguments -> compilerArguments.classpath?.let { "-classpath" to it.split(File.pathSeparator) }
+        is K2MetadataCompilerArguments -> compilerArguments.classpath
+            ?.let { K2MetadataCompilerArguments::classpath.argumentValue!! to it.split(File.pathSeparator) }
+        is K2JVMCompilerArguments -> compilerArguments.classpath
+            ?.let { K2JVMCompilerArguments::classpath.argumentValue!! to it.split(File.pathSeparator) }
         else -> null
     }
 

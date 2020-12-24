@@ -500,7 +500,7 @@ class KotlinMPPGradleModelBuilder : ModelBuilderService {
     private fun buildTestRunTasks(project: Project, gradleTarget: Named): Collection<KotlinTestRunTask> {
         val getTestRunsMethod = gradleTarget.javaClass.getMethodOrNull("getTestRuns")
         if (getTestRunsMethod != null) {
-            val testRuns = getTestRunsMethod?.invoke(gradleTarget) as? Iterable<Any>
+            val testRuns = getTestRunsMethod.invoke(gradleTarget) as? Iterable<Any>
             if (testRuns != null) {
                 val testReports =
                     testRuns.mapNotNull { (it.javaClass.getMethodOrNull("getExecutionTask")?.invoke(it) as? TaskProvider<Task>)?.get() }
@@ -589,9 +589,7 @@ class KotlinMPPGradleModelBuilder : ModelBuilderService {
         val kotlinSourceSets = kotlinGradleSourceSets.mapNotNull { sourceSetMap[it.name] }
         val compileKotlinTask = getCompileKotlinTaskName(project, gradleCompilation) ?: return null
         val output = buildCompilationOutput(gradleCompilation, compileKotlinTask) ?: return null
-        val compilationFlatArgsInfo = buildFlatArgsInfo(compileKotlinTask)
-            ?: buildFlatArgsInfoUnsafe(compileKotlinTask)
-            ?: return null
+        val compilationFlatArgsInfo = buildFlatArgsInfo(compileKotlinTask) ?: return null
         val dependencies =
             buildCompilationDependencies(gradleCompilation, classifier, sourceSetMap, dependencyResolver, project, dependencyMapper)
         val kotlinTaskProperties = getKotlinTaskProperties(compileKotlinTask, classifier)
@@ -762,42 +760,18 @@ class KotlinMPPGradleModelBuilder : ModelBuilderService {
         null
     } ?: emptyList()
 
-    private fun buildFlatArgsInfoUnsafe(
-        compileKotlinTask: Task,
-    ): FlatArgsInfo? {
-        val compilationArguments = buildCompilationArgumentsUnsafe(compileKotlinTask) ?: return null
-        val dependencyClasspath = buildDependencyClasspath(compileKotlinTask)
-        return converter?.let {
-            FlatArgsInfoImpl(
-                it.convert(compilationArguments.currentArguments.toList()),
-                it.convert(compilationArguments.defaultArguments.toList()),
-                dependencyClasspath
-            )
-        }
-    }
-
-    private fun buildCompilationArgumentsUnsafe(compileKotlinTask: Task): KotlinCompilationArguments? {
-        val compileTaskClass = compileKotlinTask.javaClass
-        val getCurrentArguments = compileTaskClass.getMethodOrNull("getSerializedCompilerArguments")
-        val getDefaultArguments = compileTaskClass.getMethodOrNull("getDefaultSerializedCompilerArguments")
-        val currentArguments = safelyGetArguments(compileKotlinTask, getCurrentArguments)
-        val defaultArguments = safelyGetArguments(compileKotlinTask, getDefaultArguments)
-        return KotlinCompilationArgumentsImpl(defaultArguments.toTypedArray(), currentArguments.toTypedArray())
-    }
+    private fun Task.safelyGetBucketFromArguments(methodName: String) = javaClass.getMethodOrNull(methodName)
+        ?.let { safelyGetArguments(this, it) }
+        ?.let { converter?.convert(it) }
 
     private fun buildFlatArgsInfo(
         compileKotlinTask: Task,
     ): FlatArgsInfo? {
-        val compileTaskClass = compileKotlinTask.javaClass
         val currentFlatArgumentsBucket = compileKotlinTask.getCompilerArgumentsBucket("getFlatCompilerArgumentsBucket")
-            ?: compileTaskClass.getMethodOrNull("getSerializedCompilerArguments")
-                ?.let { safelyGetArguments(compileKotlinTask, it) }
-                ?.let { converter?.convert(it) }
+            ?: compileKotlinTask.safelyGetBucketFromArguments("getSerializedCompilerArguments")
             ?: return null
         val defaultFlatArgumentsBucket = compileKotlinTask.getCompilerArgumentsBucket("getFlatCompilerArgumentsBucket")
-            ?: compileTaskClass.getMethodOrNull("getDefaultSerializedCompilerArguments")
-                ?.let { safelyGetArguments(compileKotlinTask, it) }
-                ?.let { converter?.convert(it) }
+            ?: compileKotlinTask.safelyGetBucketFromArguments("getDefaultSerializedCompilerArguments")
             ?: FlatCompilerArgumentsBucket()
         val dependencyClasspath = buildDependencyClasspath(compileKotlinTask)
         return FlatArgsInfoImpl(currentFlatArgumentsBucket, defaultFlatArgumentsBucket, dependencyClasspath)
