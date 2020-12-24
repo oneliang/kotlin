@@ -52,6 +52,8 @@ public expect enum class DurationUnit {
 @ExperimentalTime
 internal expect fun convertDurationUnit(value: Double, sourceUnit: DurationUnit, targetUnit: DurationUnit): Double
 
+internal inline fun Double.normalizeZero(): Double = if (this == 0.0) 0.0 else this
+
 
 @SinceKotlin("1.3")
 @ExperimentalTime
